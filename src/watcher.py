@@ -8,9 +8,16 @@ import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
 import arxiv
-from crossref.restful import Works
 
 logger = logging.getLogger("ZotWatcher.watcher")
+
+# 延迟导入 crossref，避免导入错误
+try:
+    from crossref.restful import Works
+    CROSSREF_AVAILABLE = True
+except ImportError:
+    CROSSREF_AVAILABLE = False
+    logger.warning("crossref-commons 未安装，Crossref 功能将被禁用")
 
 
 class LiteratureWatcher:
@@ -535,6 +542,10 @@ class LiteratureWatcher:
     
     def _fetch_crossref(self) -> List[Dict[str, Any]]:
         """抓取 Crossref"""
+        if not CROSSREF_AVAILABLE:
+            logger.warning("crossref-commons 未安装，跳过 Crossref 抓取")
+            return []
+        
         try:
             crossref_config = self.sources_config.get("sources", {}).get("crossref", {})
             recent_days = self.sources_config.get("recent_days", 7)
