@@ -1,0 +1,77 @@
+name: Daily Watch & RSS
+
+on:
+  schedule:
+    # 每天 UTC 06:00 (北京时间 14:00) 自动运行
+    - cron: '0 6 * * *'
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  watch-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Generate cache key
+      id: cache-key
+      run: |
+        echo "year_month=$(date +'%Y%m')" >> $GITHUB_OUTPUT
+    
+    - name: Restore profile cache
+      id: cache-profile
+      uses: actions/cache@v3
+      with:
+        path: |
+          data/profile.sqlite
+          data/faiss.index
+          data/profile.json
+        key: profile-${{ steps.cache-key.outputs.year_month }}
+    
+    - name: Build full profile (if cache miss or new month)
+      if: steps.cache-profile.outputs.cache-hit != 'true'
+      env:
+        ZOTERO_API_KEY: ${{ secrets.ZOTERO_API_KEY }}
+        ZOTERO_USER_ID: ${{ secrets.ZOTERO_USER_ID }}
+        ALTMETRIC_KEY: ${{ secrets.ALTMETRIC_KEY }}
+        OPENALEX_MAILTO: ${{ secrets.OPENALEX_MAILTO }}
+        CROSSREF_MAILTO: ${{ secrets.CROSSREF_MAILTO }}
+      run: |
+        python -m src.cli profile --full
+    
+    - name: Run daily watch
+      env:
+        ZOTERO_API_KEY: ${{ secrets.ZOTERO_API_KEY }}
+        ZOTERO_USER_ID: ${{ secrets.ZOTERO_USER_ID }}
+        ALTMETRIC_KEY: ${{ secrets.ALTMETRIC_KEY }}
+        OPENALEX_MAILTO: ${{ secrets.OPENALEX_MAILTO }}
+        CROSSREF_MAILTO: ${{ secrets.CROSSREF_MAILTO }}
+      run: |
+        python -m src.cli watch --rss --report --top 100
+    
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: reports/
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

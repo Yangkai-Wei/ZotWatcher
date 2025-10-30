@@ -1,0 +1,97 @@
+# 文章评分配置
+
+# 各项权重
+weights:
+  # 语义相似度权重
+  semantic_similarity: 0.40
+  # 时间衰减权重
+  time_decay: 0.15
+  # 引用数权重
+  citation_count: 0.15
+  # Altmetric 分数权重
+  altmetric_score: 0.10
+  # 期刊质量权重（SJR 等）
+  journal_quality: 0.15
+  # 白名单加分权重
+  whitelist_bonus: 0.05
+
+# 语义相似度配置
+semantic:
+  # 使用的向量化模型
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  # 相似度计算方式：cosine 或 euclidean
+  similarity_metric: cosine
+  # 最小相似度阈值（低于此值的文章将被过滤）
+  min_similarity: 0.3
+  # Top-K 最相似文章数量
+  top_k: 100
+
+# 时间衰减配置
+time_decay:
+  # 衰减模式：linear（线性）或 exponential（指数）
+  mode: exponential
+  # 半衰期（天数，仅用于指数衰减）
+  half_life: 3.5
+  # 线性衰减率（每天，仅用于线性衰减）
+  daily_decay_rate: 0.1
+  # 最大时间窗口（天数，超过此时间的文章分数归零）
+  max_days: 14
+
+# 引用数配置
+citations:
+  # 引用数归一化方式：log（对数）或 linear（线性）
+  normalization: log
+  # 对数归一化基数
+  log_base: 10
+  # 线性归一化最大值
+  max_citations: 1000
+
+# Altmetric 配置
+altmetric:
+  # 是否启用
+  enabled: false
+  # Altmetric 分数归一化最大值
+  max_score: 1000
+  # API 速率限制（秒）
+  rate_limit: 1.0
+
+# 期刊质量配置
+journal:
+  # 使用的指标：sjr（SCImago Journal Rank）或 impact_factor
+  metric: sjr
+  # SJR 归一化最大值
+  max_sjr: 10.0
+  # 影响因子归一化最大值
+  max_impact_factor: 50.0
+  # 是否对缺失期刊指标的文章给予惩罚
+  penalize_missing: false
+  # 缺失指标的默认分数（0.0-1.0）
+  default_score: 0.5
+
+# 白名单配置
+whitelist:
+  # 是否启用白名单
+  enabled: true
+  # 白名单加分值（0.0-1.0）
+  bonus_score: 0.2
+  # 白名单作者（精确匹配，不区分大小写）
+  authors:
+    # - "John Doe"
+    # - "Jane Smith"
+  # 白名单期刊（部分匹配，不区分大小写）
+  journals:
+    # - "Nature"
+    # - "Science"
+    # - "Cell"
+  # 白名单关键词（出现在标题或摘要中，不区分大小写）
+  keywords:
+    # - "deep learning"
+    # - "CRISPR"
+
+# 最终评分配置
+final:
+  # 最终分数归一化范围
+  min_score: 0.0
+  max_score: 100.0
+  # 是否在分数相同时按时间排序（True 表示新文章优先）
+  sort_by_time_on_tie: true

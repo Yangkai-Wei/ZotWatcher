@@ -1,0 +1,39 @@
+# Python 核心依赖
+python>=3.10
+
+# Zotero API
+pyzotero>=1.5.0
+
+# 数据处理
+numpy>=1.24.0
+pandas>=2.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+PyYAML>=6.0
+
+# 向量化和相似度计算
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+torch>=2.0.0
+
+# RSS 生成
+feedgen>=0.9.0
+
+# HTML 模板
+jinja2>=3.1.0
+
+# 数据库
+sqlite3  # Python 内置
+
+# API 相关
+arxiv>=1.4.0
+crossref-commons>=0.0.7
+
+# 可选：Altmetric
+# pyaltmetric>=1.0.0
+
+# 可选：期刊指标
+# scholarly>=1.7.0
+
+# 工具
+tqdm>=4.65.0

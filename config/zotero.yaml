@@ -1,0 +1,27 @@
+# Zotero API 配置
+api_key: ${ZOTERO_API_KEY}
+user_id: ${ZOTERO_USER_ID}
+
+# Zotero 库类型：user 或 group
+library_type: user
+
+# 批量获取条目的每页数量
+items_per_page: 100
+
+# 最大获取条目数（用于全量构建时限制数量，0 表示无限制）
+max_items: 0
+
+# 是否包含附件信息
+include_attachments: false
+
+# 需要获取的字段
+fields:
+  - title
+  - creators
+  - abstractNote
+  - date
+  - publicationTitle
+  - DOI
+  - url
+  - tags
+  - itemType

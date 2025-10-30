@@ -1,0 +1,84 @@
+# 学术信息源配置
+
+# 时间窗口（天数）：只推荐最近 N 天内的文章
+recent_days: 7
+
+# 数据源配置
+sources:
+  crossref:
+    enabled: true
+    # Crossref 筛选条件
+    filter:
+      from_pub_date: null  # 自动计算为 recent_days 前
+      until_pub_date: null  # 自动计算为今天
+    # 查询字段（可选）
+    query_fields: []
+    # 每次请求返回的结果数
+    rows: 100
+    # 最大抓取页数
+    max_pages: 5
+    # 类型过滤
+    types:
+      - journal-article
+    # 最小引用数
+    min_citations: 0
+
+  arxiv:
+    enabled: true
+    # arXiv 分类（可根据兴趣添加，留空表示全部）
+    categories:
+      - cs.AI
+      - cs.CL
+      - cs.CV
+      - cs.LG
+      - stat.ML
+      - q-bio
+    # 最大结果数
+    max_results: 200
+    # 排序方式：submittedDate 或 relevance
+    sort_by: submittedDate
+    sort_order: descending
+
+  biorxiv:
+    enabled: true
+    # bioRxiv 服务器：biorxiv 或 medrxiv
+    server: biorxiv
+    # 时间间隔（天数）
+    interval: 7
+    # 分类过滤（留空表示全部）
+    categories: []
+
+  medrxiv:
+    enabled: true
+    server: medrxiv
+    interval: 7
+    categories: []
+
+# 热门期刊精准抓取配置
+top_journals:
+  # 是否启用热门期刊精准抓取
+  enabled: true
+  # 热门期刊数量（从画像中获取）
+  top_n: 20
+  # 每个期刊抓取的文章数
+  articles_per_journal: 10
+  # 时间窗口（天数）
+  recent_days: 14
+
+# 候选文章过滤
+filtering:
+  # 最大候选文章数（排序后截取）
+  max_candidates: 500
+  # 预印本文章最大比例（0.0-1.0）
+  max_preprint_ratio: 0.5
+  # 最小标题长度
+  min_title_length: 10
+  # 排除的期刊名称关键词
+  exclude_journals:
+    - "Correction"
+    - "Retraction"
+  # 排除的文章类型
+  exclude_types:
+    - editorial
+    - correction
+    - retraction
