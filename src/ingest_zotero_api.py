@@ -260,6 +260,11 @@ class ZoteroIngestor:
         # 保存分类信息到 storage（供后续查询）
         self.storage.save_collections(all_collections)
 
+        # 如果是全量同步且有分类过滤，先清空数据库
+        if full and not self.settings.zotero.collections.is_empty():
+            logger.info("Full sync with collection filter: clearing existing items")
+            self.storage.clear_all_items()
+
         for response in self.client.iter_items(since_version=since_version):
             items = response.json()
             response_version = int(response.headers.get("Last-Modified-Version", 0))

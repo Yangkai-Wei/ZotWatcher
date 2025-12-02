@@ -214,6 +214,12 @@ class ProfileStorage:
         self.connect().execute(f"DELETE FROM items WHERE key IN ({placeholders})", keys)
         self.connect().commit()
 
+    def clear_all_items(self) -> None:
+        """清空所有条目（用于全量同步时重建）"""
+        conn = self.connect()
+        conn.execute("DELETE FROM items")
+        conn.commit()
+
     def set_embedding(self, key: str, vector: bytes) -> None:
         self.connect().execute(
             "UPDATE items SET embedding = ?, updated_at=CURRENT_TIMESTAMP WHERE key = ?",
