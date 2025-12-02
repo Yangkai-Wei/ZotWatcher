@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from .build_profile import ProfileBuilder
 from .dedupe import DedupeEngine
 from .fetch_new import CandidateFetcher
-from .ingest_zotero_api import ZoteroIngestor
+from .ingest_zotero_api import ZoteroIngestor, ZoteroCollection
 from .logging_utils import setup_logging
 from .models import RankedWork
 from .push_to_zotero import ZoteroPusher
@@ -28,7 +28,7 @@ RSS_PATH = BASE_DIR / "reports" / "feed.xml"
 
 def main(argv: Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser(description="ZotWatcher CLI")
-    parser.add_argument("command", choices=["profile", "watch"], help="Command to run")
+    parser.add_argument("command", choices=["profile", "watch", "collections"], help="Command to run")
     parser.add_argument("--base-dir", default=str(BASE_DIR), help="Repository base directory")
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     parser.add_argument("--full", action="store_true", help="Full rebuild (profile command)")
@@ -37,6 +37,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     parser.add_argument("--report", action="store_true", help="Generate HTML report (watch command)")
     parser.add_argument("--top", type=int, default=50, help="Number of top results to keep")
     parser.add_argument("--push", action="store_true", help="Push top items back to Zotero")
+    parser.add_argument("--tree", action="store_true", help="Show collections as tree (collections command)")
 
     args = parser.parse_args(argv)
 
@@ -50,14 +51,85 @@ def main(argv: Optional[list[str]] = None) -> None:
         run_profile(base_dir, settings, storage, full=args.full or args.weekly)
     elif args.command == "watch":
         run_watch(base_dir, settings, storage, rss=args.rss, report=args.report, top=args.top, push=args.push)
+    elif args.command == "collections":
+        run_collections(settings, tree=args.tree)
+
+
+def run_collections(settings: Settings, *, tree: bool) -> None:
+    """列出 Zotero 中的所有分类"""
+    from .ingest_zotero_api import ZoteroClient
+
+    client = ZoteroClient(settings)
+    collections = client.fetch_collections()
+
+    if not collections:
+        print("No collections found in your Zotero library.")
+        return
+
+    print(f"\nFound {len(collections)} collections in your Zotero library:\n")
+
+    if tree:
+        _print_collection_tree(collections)
+    else:
+        _print_collection_flat(collections)
+
+    print("\n" + "=" * 60)
+    print("Usage in config/zotero.yaml:")
+    print("  collections:")
+    print('    names: ["分类名称"]           # 按名称过滤')
+    print('    names: ["父分类/子分类"]      # 多级路径')
+    print('    ids: ["ABC123XY"]             # 按 ID 过滤')
+    print("    include_children: true        # 包含子分类")
+    print("=" * 60 + "\n")
+
+
+def _print_collection_tree(collections: dict[str, ZoteroCollection], indent: int = 0) -> None:
+    """以树形结构打印分类"""
+    # 找到顶层分类（没有父分类的）
+    if indent == 0:
+        roots = [c for c in collections.values() if c.parent_key is None]
+        for root in sorted(roots, key=lambda x: x.name):
+            _print_single_collection(root, collections, indent)
+    else:
+        pass  # 递归调用处理
+
+
+def _print_single_collection(
+    coll: ZoteroCollection,
+    all_collections: dict[str, ZoteroCollection],
+    indent: int
+) -> None:
+    """打印单个分类及其子分类"""
+    prefix = "  " * indent + ("├── " if indent > 0 else "")
+    print(f"{prefix}{coll.name}")
+    print(f"{'  ' * indent}    ID: {coll.key}")
+    print(f"{'  ' * indent}    Path: {coll.full_path(all_collections)}")
+    print()
+
+    for child in sorted(coll.children, key=lambda x: x.name):
+        _print_single_collection(child, all_collections, indent + 1)
+
+
+def _print_collection_flat(collections: dict[str, ZoteroCollection]) -> None:
+    """以扁平列表打印分类（按完整路径排序）"""
+    items = []
+    for coll in collections.values():
+        full_path = coll.full_path(collections)
+        items.append((full_path, coll.key, coll.name))
+
+    for full_path, key, name in sorted(items):
+        print(f"  {full_path}")
+        print(f"    ID: {key}")
+        print()
 
 
 def run_profile(base_dir: Path, settings: Settings, storage: ProfileStorage, *, full: bool) -> None:
     ingest = ZoteroIngestor(storage, settings)
     stats = ingest.run(full=full)
-    logging.getLogger(__name__).info(
-        "Ingest stats: fetched=%s updated=%s removed=%s", stats.fetched, stats.updated, stats.removed
-    )
+    log_msg = f"Ingest stats: fetched={stats.fetched} updated={stats.updated} removed={stats.removed}"
+    if stats.filtered:
+        log_msg += f" filtered={stats.filtered}"
+    logging.getLogger(__name__).info(log_msg)
     builder = ProfileBuilder(base_dir, storage, settings)
     artifacts = builder.run()
     logging.getLogger(__name__).info(

@@ -23,9 +23,21 @@ class ZoteroApiConfig(BaseModel):
         return key
 
 
+class CollectionFilterConfig(BaseModel):
+    """分类过滤配置，支持按名称或ID过滤，支持多级分类"""
+    names: List[str] = Field(default_factory=list)
+    ids: List[str] = Field(default_factory=list)
+    include_children: bool = True
+
+    def is_empty(self) -> bool:
+        """检查是否没有设置任何过滤条件"""
+        return not self.names and not self.ids
+
+
 class ZoteroConfig(BaseModel):
     mode: str = "api"
     api: ZoteroApiConfig = Field(default_factory=ZoteroApiConfig)
+    collections: CollectionFilterConfig = Field(default_factory=CollectionFilterConfig)
 
     @validator("mode")
     def validate_mode(cls, value: str) -> str:
@@ -158,4 +170,5 @@ __all__ = [
     "ZoteroConfig",
     "SourcesConfig",
     "ScoringConfig",
+    "CollectionFilterConfig",
 ]

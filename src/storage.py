@@ -31,7 +31,15 @@ CREATE TABLE IF NOT EXISTS metadata (
     value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS zotero_collections (
+    key TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    parent_key TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_items_version ON items(version);
+CREATE INDEX IF NOT EXISTS idx_collections_parent ON zotero_collections(parent_key);
 """
 
 
@@ -230,6 +238,54 @@ class ProfileStorage:
             "SELECT key, embedding FROM items WHERE embedding IS NOT NULL"
         )
         return [(row["key"], row["embedding"]) for row in cur]
+
+    def save_collections(self, collections: dict) -> None:
+        """保存分类信息到数据库（接受 Dict[str, ZoteroCollection]）"""
+        conn = self.connect()
+        # 确保表存在
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS zotero_collections (
+                key TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                parent_key TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_collections_parent ON zotero_collections(parent_key)")
+
+        # 清空旧数据并插入新数据
+        conn.execute("DELETE FROM zotero_collections")
+        for coll in collections.values():
+            conn.execute(
+                "INSERT INTO zotero_collections(key, name, parent_key) VALUES(?, ?, ?)",
+                (coll.key, coll.name, coll.parent_key),
+            )
+        conn.commit()
+
+    def load_collections(self) -> dict:
+        """从数据库加载分类信息，返回 Dict[str, dict]"""
+        conn = self.connect()
+        try:
+            cur = conn.execute("SELECT key, name, parent_key FROM zotero_collections")
+            result = {}
+            for row in cur:
+                result[row["key"]] = {
+                    "key": row["key"],
+                    "name": row["name"],
+                    "parent_key": row["parent_key"],
+                }
+            return result
+        except sqlite3.OperationalError:
+            # 表不存在
+            return {}
+
+    def iter_items_in_collections(self, collection_ids: List[str]) -> Iterable[ZoteroItem]:
+        """迭代属于指定分类的所有条目"""
+        for item in self.iter_items():
+            for coll_id in item.collections:
+                if coll_id in collection_ids:
+                    yield item
+                    break
 
 
 def _row_to_item(row: sqlite3.Row) -> ZoteroItem:

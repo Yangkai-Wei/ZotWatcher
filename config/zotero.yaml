@@ -4,3 +4,26 @@ api:
   api_key_env: "ZOTERO_API_KEY"
   page_size: 100
   polite_delay_ms: 200
+
+# 分类过滤配置（可选）
+# 如果不设置或为空，则追踪整个文库
+# 支持多级分类：指定父分类会自动包含所有子分类
+collections:
+  # 方式一：按分类名称过滤（支持多级路径，用 "/" 分隔）
+  # 例如: "生物信息/单细胞" 会匹配名为"单细胞"且父分类为"生物信息"的分类
+  # names: []
+  names:
+    - "具身智能"           # 追踪整个"生物信息"分类及其子分类
+    - "具身智能/LLM"     # 只追踪"生物信息"下的"单细胞"子分类
+    - "具身智能/VLM"
+    - "具身智能/Robot"
+
+  # 方式二：按分类 ID 过滤（从 Zotero 获取）
+  # 可通过 "python -m src.cli collections" 命令列出所有分类及其 ID
+  ids: []
+  # ids:
+  #   - "ABC123XY"
+  #   - "DEF456ZW"
+
+  # 是否包含子分类（默认 true）
+  include_children: true
